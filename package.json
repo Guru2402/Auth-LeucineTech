@@ -1,7 +1,7 @@
 {
   "name": "auth_boilerPlate",
   "version": "1.0.0",
-  "description": "",
+  "description": "Node Authentication with passport, mongoose.",
   "main": "app.js",
   "author": "guru2402",
   "license": "ISC",
