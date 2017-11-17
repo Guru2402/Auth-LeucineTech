@@ -3,6 +3,7 @@ var express = require("express"),
   passport = require("passport"),
   bodyParser = require("body-parser"),
   User = require("./models/user"),
+  mailer = require("nodemailer"),
   LocalStrategy = require("passport-local"),
   passportLocalMongoose = require("passport-local-mongoose");
 
@@ -15,7 +16,7 @@ app.use(
   require("express-session")({
     secret: "Rusty is the best and cutest dog in the world",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: false
   })
 );
 
@@ -46,19 +47,91 @@ app.get("/register", function(req, res) {
 app.post("/register", function(req, res) {
   var name = req.body.fName + " " + req.body.lName;
   console.log(req.body);
+  let p = Math.floor(Math.random() * 100000);
+  const m = p.toString();
   User.register(
     new User({ username: req.body.username, name, role: req.body.role }),
-    req.body.password,
+    m,
     function(err, user) {
       if (err) {
         console.log(err);
         return res.render("register");
       }
-      passport.authenticate("local")(req, res, function() {
-        res.redirect("/");
-      });
+      console.log(user);
+      if (user) {
+        // MAILER
+        var trans = mailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: "baymax1298@gmail.com",
+            pass: "smily2012"
+          }
+        });
+
+        var list = ["jamesstark145@gmail.com", user.email];
+
+        var mailOptions = {
+          from: "<baymax1298@yahoo.com>",
+          to: user.username,
+          subject: "Password set",
+          text: "Password set",
+          html:
+            "<br>Hi" +
+            " " +
+            user.username +
+            "," +
+            "<br>" +
+            "Your reset pwd is : " +
+            m +
+            "<br>Click here to set your new password: http://192.168.1.26:8081/setPassword?u=" +
+            user.username +
+            " " +
+            "</br>" +
+            "<br>Thanks for using LeucineTech!</br>"
+        };
+
+        trans.sendMail(mailOptions, function(error, info) {
+          if (error) {
+            console.log(error);
+          } else {
+            console.log("Message sent:", info.messageId, info.response);
+          }
+        });
+      } else {
+        console.log("This user does not exist");
+        res.redirect("/login");
+      }
+      res.redirect("/");
     }
   );
+});
+
+app.get("/setPassword", (req, res) => {
+  res.render("setPassword", { u: req.query.u });
+});
+
+app.post("/setPassword", (req, res) => {
+  User.findOne({ username: req.body.username }, (err, user) => {
+    console.log(user);
+    if (err) {
+      console.log(err);
+      res.json(err);
+    }
+
+    console.log(user);
+    res.json(user);
+
+    // if (user.password == req.body.password1) {
+    //   user.password = req.body.password2;
+    //   user.save();
+    //
+    //   passport.authenticate("local")(req, res, () => {
+    //     res.redirect("/profile");
+    //   });
+    // } else {
+    //   res.redirect("/setPassword");
+    // }
+  });
 });
 
 app.get("/login", function(req, res) {
@@ -69,7 +142,7 @@ app.post(
   "/login",
   passport.authenticate("local", {
     successRedirect: "/",
-    failureRedirect: "/login",
+    failureRedirect: "/login"
   }),
   function(req, res) {}
 );
