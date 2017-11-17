@@ -15,6 +15,9 @@
                 <ul class="nav navbar-nav navbar-right">
                   <% if(currentUser){ %>
                   <li><a href="#">Signed In As <%= currentUser.username %></a></li>
+                  <% if(currentUser.role == "superAdmin"){ %>
+                  <li><a href="/register">Register</a></li>
+                  <% } %>
                   <li><a href="/logout">Logout</a></li>
                   <% } %>
                 </ul>

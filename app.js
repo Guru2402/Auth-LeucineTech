@@ -7,6 +7,13 @@ var express = require("express"),
   LocalStrategy = require("passport-local"),
   passportLocalMongoose = require("passport-local-mongoose");
 
+// ====================================================
+// =============== Email & Password ===================
+
+var email = ""; //Enter your email Here
+var password = ""; //Enter your password here
+
+// ====================================================
 mongoose.connect("mongodb://localhost/leucine");
 var app = express();
 app.set("view engine", "ejs");
@@ -14,7 +21,7 @@ app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   require("express-session")({
-    secret: "Rusty is the best and cutest dog in the world",
+    secret: "Guru is a coder",
     resave: false,
     saveUninitialized: false
   })
@@ -40,11 +47,11 @@ app.get("/", isLoggedIn, function(req, res) {
   res.render("home");
 });
 
-app.get("/register", function(req, res) {
+app.get("/register", isSuperAdmin, function(req, res) {
   res.render("register");
 });
 
-app.post("/register", function(req, res) {
+app.post("/register", isSuperAdmin, function(req, res) {
   var name = req.body.fName + " " + req.body.lName;
   console.log(req.body);
   let p = Math.floor(Math.random() * 100000);
@@ -59,49 +66,49 @@ app.post("/register", function(req, res) {
       }
       console.log(user);
       if (user) {
-        // MAILER
-        var trans = mailer.createTransport({
-          service: "gmail",
-          auth: {
-            user: "baymax1298@gmail.com",
-            pass: "smily2012"
-          }
-        });
-
-        var list = ["jamesstark145@gmail.com", user.email];
-
-        var mailOptions = {
-          from: "<baymax1298@yahoo.com>",
-          to: user.username,
-          subject: "Password set",
-          text: "Password set",
-          html:
-            "<br>Hi" +
-            " " +
-            user.username +
-            "," +
-            "<br>" +
-            "Your reset pwd is : " +
-            m +
-            "<br>Click here to set your new password: http://192.168.1.26:8081/setPassword?u=" +
-            user.username +
-            " " +
-            "</br>" +
-            "<br>Thanks for using LeucineTech!</br>"
-        };
-
-        trans.sendMail(mailOptions, function(error, info) {
-          if (error) {
-            console.log(error);
-          } else {
-            console.log("Message sent:", info.messageId, info.response);
-          }
-        });
+        // // MAILER
+        // var trans = mailer.createTransport({
+        //   service: "gmail",
+        //   auth: {
+        //     user: email,
+        //     pass: password
+        //   }
+        // });
+        //
+        // var list = ["jamesstark145@gmail.com", user.email];
+        //
+        // var mailOptions = {
+        //   from: email,
+        //   to: user.username,
+        //   subject: "Password set",
+        //   text: "Password set",
+        //   html:
+        //     "<br>Hi" +
+        //     " " +
+        //     user.username +
+        //     "," +
+        //     "<br>" +
+        //     "Your password code is : " +
+        //     m +
+        //     "<br>Click here to set your new password: http://192.168.1.26:8081/setPassword?u=" +
+        //     user.username +
+        //     " " +
+        //     "</br>" +
+        //     "<br>Thanks for using LeucineTech!</br>"
+        // };
+        //
+        // trans.sendMail(mailOptions, function(error, info) {
+        //   if (error) {
+        //     console.log(error);
+        //   } else {
+        //     console.log("Message sent:", info.messageId, info.response);
+        //   }
+        // });
+        res.redirect("/");
       } else {
         console.log("This user does not exist");
-        res.redirect("/login");
+        res.redirect("/register");
       }
-      res.redirect("/");
     }
   );
 });
@@ -119,38 +126,22 @@ app.post("/setPassword", (req, res) => {
     passport.authenticate("local", (err, user) => {
       console.log(user);
       user.validatePassword(req.body.password, (err, newUser) => {
-        if (err) return res.status(400).send({ message: err });
-        console.log(newUser);
-        newUser.setPassword(req.body.password1, (err, newMan) => {
-          newMan.save(err => {
-            if (err) {
-              res.send(err);
-            }
-            res.redirect("/login");
+        if (err) {
+          return res.send({ message: err, error: "The credentials are wrong" });
+        } else {
+          console.log(newUser);
+          newUser.setPassword(req.body.password1, (err, newMan) => {
+            newMan.save(err => {
+              if (err) {
+                res.send(err);
+              }
+              res.redirect("/login");
+            });
           });
-        });
+        }
       });
     })(req, res, () => {});
   });
-  // user.changePassword(
-  //   req.body.password1,
-  //   req.body.password,
-  //   (err, changed) => {
-  //     if (err) console.log(err);
-  //     console.log(changed);
-  //   }
-  // );
-
-  // if (user.password == req.body.password1) {
-  //   user.password = req.body.password2;
-  //   user.save();
-  //
-  //   passport.authenticate("local")(req, res, () => {
-  //     res.redirect("/profile");
-  //   });
-  // } else {
-  //   res.redirect("/setPassword");
-  // }
 });
 
 app.get("/login", function(req, res) {
@@ -176,6 +167,12 @@ function isLoggedIn(req, res, next) {
     return next();
   }
   res.redirect("/login");
+}
+function isSuperAdmin(req, res, next) {
+  if (req.isAuthenticated() && req.user.role == "superAdmin") {
+    return next();
+  }
+  res.redirect("login");
 }
 
 app.listen(8081, function() {
