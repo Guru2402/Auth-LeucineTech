@@ -111,27 +111,46 @@ app.get("/setPassword", (req, res) => {
 });
 
 app.post("/setPassword", (req, res) => {
-  User.findOne({ username: req.body.username }, (err, user) => {
-    console.log(user);
+  User.findOne({ username: req.body.username }, (err, users) => {
     if (err) {
       console.log(err);
       res.json(err);
     }
-
-    console.log(user);
-    res.json(user);
-
-    // if (user.password == req.body.password1) {
-    //   user.password = req.body.password2;
-    //   user.save();
-    //
-    //   passport.authenticate("local")(req, res, () => {
-    //     res.redirect("/profile");
-    //   });
-    // } else {
-    //   res.redirect("/setPassword");
-    // }
+    passport.authenticate("local", (err, user) => {
+      console.log(user);
+      user.validatePassword(req.body.password, (err, newUser) => {
+        if (err) return res.status(400).send({ message: err });
+        console.log(newUser);
+        newUser.setPassword(req.body.password1, (err, newMan) => {
+          newMan.save(err => {
+            if (err) {
+              res.send(err);
+            }
+            res.redirect("/login");
+          });
+        });
+      });
+    })(req, res, () => {});
   });
+  // user.changePassword(
+  //   req.body.password1,
+  //   req.body.password,
+  //   (err, changed) => {
+  //     if (err) console.log(err);
+  //     console.log(changed);
+  //   }
+  // );
+
+  // if (user.password == req.body.password1) {
+  //   user.password = req.body.password2;
+  //   user.save();
+  //
+  //   passport.authenticate("local")(req, res, () => {
+  //     res.redirect("/profile");
+  //   });
+  // } else {
+  //   res.redirect("/setPassword");
+  // }
 });
 
 app.get("/login", function(req, res) {
